@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable
+import pickle
 
 from .chunking import _dot
 from .embeddings import _mock_embed
@@ -66,3 +67,10 @@ class EmbeddingStore:
         before = len(self._store)
         self._store = [r for r in self._store if r["doc_id"] != doc_id]
         return len(self._store) < before
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            pickle.dump(self._store, f)
+
+    def load(self, path: str):
+        with open(path, "rb") as f:
+            self._store = pickle.load(f)

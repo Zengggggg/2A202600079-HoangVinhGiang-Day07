@@ -4,7 +4,7 @@ import hashlib
 import math
 
 LOCAL_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
+OPENAI_EMBEDDING_MODEL = "text-embedding-3-large"
 EMBEDDING_PROVIDER_ENV = "EMBEDDING_PROVIDER"
 
 
@@ -54,7 +54,7 @@ class OpenAIEmbedder:
         self.client = OpenAI()
 
     def __call__(self, text: str) -> list[float]:
-        response = self.client.embeddings.create(model=self.model_name, input=text)
+        response = self.client.embeddings.create(model=self.model_name, input=text[:8000])
         return [float(value) for value in response.data[0].embedding]
 
 

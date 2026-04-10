@@ -124,6 +124,76 @@ class RecursiveChunker:
             chunks.extend(self._split(buffer.strip(), remaining_separators[1:]))
 
         return chunks
+    
+class CustomChunker:
+    """
+    Recursively split text using separators in priority order.
+
+    Default separator priority:
+        ["\n\n", "\n", ". ", " ", ""]
+    """
+
+    DEFAULT_SEPARATORS = [
+        "\n## ",   # Cắt theo Level 2 Header (Mục lớn)
+        "\n### ",  # Cắt theo Level 3 Header (Mục nhỏ)
+        "\n\n",    # Cắt theo đoạn văn
+        "\n- ",    # Cắt theo các dòng bullet point (rất quan trọng cho chính sách)
+        "\n",      # Cắt theo dòng đơn
+        ". ",      # Cắt theo câu
+        " ",       # Cắt theo từ
+        ""         # Cắt theo ký tự (trường hợp cuối cùng)
+    ]
+
+    def __init__(self, separators: list[str] | None = None, chunk_size: int = 500) -> None:
+        self.separators = self.DEFAULT_SEPARATORS if separators is None else list(separators)
+        self.chunk_size = chunk_size
+
+    def chunk(self, text: str) -> list[str]:
+        # TODO: implement recursive splitting strategy
+        if not text:
+            return []
+
+        return self._split(text, self.separators)
+
+    def _split(self, current_text: str, remaining_separators: list[str]) -> list[str]:
+        # TODO: recursive helper used by RecursiveChunker.chunk
+        if len(current_text) <= self.chunk_size:
+            return [current_text.strip()]
+
+        # nếu hết separator → hard split
+        if not remaining_separators:
+            return [
+                current_text[i: i + self.chunk_size]
+                for i in range(0, len(current_text), self.chunk_size)
+            ]
+
+        sep = remaining_separators[0]
+
+        # split theo separator hiện tại
+        if sep:
+            parts = current_text.split(sep)
+        else:
+            # separator cuối: split từng ký tự
+            parts = list(current_text)
+
+        chunks = []
+        buffer = ""
+
+        for part in parts:
+            piece = part if sep == "" else part + sep
+
+            if len(buffer) + len(piece) <= self.chunk_size:
+                buffer += piece
+            else:
+                if buffer:
+                    chunks.extend(self._split(buffer.strip(), remaining_separators[1:]))
+                buffer = piece
+
+        if buffer:
+            chunks.extend(self._split(buffer.strip(), remaining_separators[1:]))
+
+        return chunks
+
 
 
 def _dot(a: list[float], b: list[float]) -> float:
@@ -156,6 +226,7 @@ class ChunkingStrategyComparator:
         fixed = FixedSizeChunker(chunk_size).chunk(text)
         sentence = SentenceChunker().chunk(text)
         recursive = RecursiveChunker(chunk_size=chunk_size).chunk(text)
+        custom = CustomChunker(chunk_size=chunk_size).chunk(text)
 
         def stats(chunks):
             if not chunks:
@@ -175,4 +246,5 @@ class ChunkingStrategyComparator:
             "fixed_size": stats(fixed),
             "by_sentences": stats(sentence),
             "recursive": stats(recursive),
+            "custom": stats(custom)
         }
